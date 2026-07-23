@@ -1,0 +1,26 @@
+# Build and Output Directories
+bin/
+obj/
+node_modules/
+dist/
+build/
+
+# Environment Variables, Secrets, and Local Configuration
+.env
+.env.*
+appsettings.Development.json
+appsettings.Development*.json
+secrets.json
+
+# IDE and Editor Files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Operating System and Log Files
+*.log
+logs/
+.DS_Store
+Thumbs.db
