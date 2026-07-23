@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- CS1591 suppressed: Application is internal — XML docs only required on public Domain API -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- Application → Domain ONLY. No Infrastructure. -->
+  <ItemGroup>
+    <ProjectReference Include="..\TelemetryPlatform.Domain\TelemetryPlatform.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ILogger<T>, IOptions<T> are not inbox in SDK class libraries -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+  </ItemGroup>
+
+</Project>
