@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- Infrastructure → Application + Domain -->
+  <ItemGroup>
+    <ProjectReference Include="..\TelemetryPlatform.Application\TelemetryPlatform.Application.csproj" />
+    <ProjectReference Include="..\TelemetryPlatform.Domain\TelemetryPlatform.Domain.csproj" />
+  </ItemGroup>
+
+  <!-- SignalR is inbox with ASP.NET Core — accessed via FrameworkReference, not NuGet -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Phase 3: PostgreSQL COPY bulk insert -->
+    <PackageReference Include="Npgsql" Version="8.0.5" />
+    <!-- Structured logging -->
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+  </ItemGroup>
+
+</Project>
