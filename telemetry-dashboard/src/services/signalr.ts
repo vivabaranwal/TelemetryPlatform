@@ -1,5 +1,9 @@
 import * as signalR from "@microsoft/signalr";
 
+// Reads VITE_API_URL at build time (set in .env.production for Vercel).
+// Falls back to localhost for local development.
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+
 export interface TelemetryPacket {
     timestamp: number;
     sensorId: number;
@@ -21,7 +25,7 @@ class TelemetrySignalRService {
     private packetListeners: ((packet: TelemetryPacket) => void)[] = [];
     private alertListeners: ((alert: AlertFrame) => void)[] = [];
 
-    public async connect(url: string = "http://localhost:5000/hubs/telemetry") {
+    public async connect(url: string = `${BASE_URL}/hubs/telemetry`) {
         if (this.connection) return;
 
         this.connection = new signalR.HubConnectionBuilder()

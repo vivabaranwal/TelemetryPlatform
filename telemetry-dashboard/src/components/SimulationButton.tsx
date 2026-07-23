@@ -31,7 +31,9 @@ interface StatusResponse {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const BASE_URL = 'http://localhost:5000/api/simulation';
+// Reads VITE_API_URL at build time (set in .env.production for Vercel).
+// Falls back to localhost for local development.
+const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:5000') + '/api/simulation';
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 

@@ -101,12 +101,21 @@ try
         c.SwaggerDoc("v1", new() { Title = "TelemetryPlatform API", Version = "v1" });
     });
 
-    // ── CORS (development) ────────────────────────────────────────────────────
+    // ── CORS ──────────────────────────────────────────────────────────────────
+    // Dev: localhost:5173 / localhost:3000 always allowed.
+    // Prod: AllowedOrigins:Frontend is injected via Railway environment variable.
+    var allowedOrigins = new[]
+    {
+        "http://localhost:5173",
+        "http://localhost:3000",
+        builder.Configuration["AllowedOrigins:Frontend"] ?? "",
+    }.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("DevDashboard", policy =>
         {
-            policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+            policy.WithOrigins(allowedOrigins)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials(); // Required for SignalR WebSockets
