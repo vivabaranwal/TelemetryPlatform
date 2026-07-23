@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HAL Aerospace Telemetry</title>
+<style>
+  :root {
+    --bg-dark: #0a0f1e;
+    --bg-card: #131a30;
+    --border: #2a3b5c;
+    --cyan: #00e5ff;
+    --green: #00e676;
+    --amber: #ff9100;
+    --red: #ff1744;
+    --text-main: #e0e6ed;
+    --text-muted: #8b9bb4;
+    --font-mono: 'Consolas', 'Courier New', monospace;
+    --font-sans: 'Inter', 'Segoe UI', sans-serif;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 24px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0f1629 0%, #0a0f1e 100%);
+  }
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-area svg {
+    width: 24px;
+    height: 24px;
+    fill: var(--cyan);
+  }
+  .logo-title {
+    font-family: var(--font-mono);
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-main);
+  }
+  .hud {
+    display: flex;
+    gap: 24px;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+  }
+  .hud-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hud-value.cyan { color: var(--cyan); }
+  .hud-value.green { color: var(--green); }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+  .container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  .main-content {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 20px;
+    flex: 1;
+  }
+  .chart-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+  .chart-title { color: var(--text-main); font-weight: bold; }
+  .chart-id { color: var(--text-muted); }
+  .chart-body {
+    flex: 1;
+    position: relative;
+  }
+  .chart-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .axis-label {
+    fill: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+  .grid-line {
+    stroke: var(--border);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+  .sidebar {
+    width: 380px;
+    border-left: 1px solid var(--border);
+    background-color: #0c1222;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--amber);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .anomaly-feed {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .anomaly-card {
+    background-color: var(--bg-card);
+    border-left: 4px solid var(--amber);
+    border-radius: 4px;
+    padding: 12px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    position: relative;
+  }
+  .anomaly-card.critical {
+    border-left-color: var(--red);
+  }
+  .anomaly-card-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+  }
+  .anomaly-card-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .anomaly-name {
+    color: var(--text-main);
+    font-weight: bold;
+  }
+  .badge {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: bold;
+  }
+  .badge.warning { background-color: rgba(255, 145, 0, 0.1); color: var(--amber); border: 1px solid var(--amber); }
+  .badge.critical { background-color: rgba(255, 23, 68, 0.1); color: var(--red); border: 1px solid var(--red); }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo-area">
+      <svg viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66C7.67 12.24 9.02 9.88 11.89 6h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C13.03 18.15 11 21 11 21z"/></svg>
+      <div class="logo-title">HAL AEROSPACE TELEMETRY</div>
+    </div>
+    <div class="hud">
+      <div class="hud-item">PACKETS RX <span class="hud-value cyan">1,247,893</span></div>
+      <div class="hud-item">STATUS <div class="status-dot"></div><span class="hud-value green">LIVE</span></div>
+    </div>
+  </header>
+  <div class="container">
+    <div class="main-content">
+      <div class="grid">
+        <!-- Card 1 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">HYDRAULIC PUMP A</span>
+            <span class="chart-id">ID:0</span>
+          </div>
+          <div class="chart-body">
+            <svg class="chart-svg" viewBox="0 0 300 150" preserveAspectRatio="none">
+              <!-- Y Axis -->
+              <text x="5" y="20" class="axis-label">4000</text>
+              <line x1="30" y1="15" x2="300" y2="15" class="grid-line" />
+              <text x="5" y="75" class="axis-label">2000</text>
+              <line x1="30" y1="70" x2="300" y2="70" class="grid-line" />
+              <text x="5" y="130" class="axis-label">0</text>
+              <line x1="30" y1="125" x2="300" y2="125" class="grid-line" />
+              
+              <!-- X Axis labels -->
+              <text x="50" y="145" class="axis-label">:20</text>
+              <text x="100" y="145" class="axis-label">:25</text>
+              <text x="150" y="145" class="axis-label">:30</text>
+              <text x="200" y="145" class="axis-label">:35</text>
+              <text x="250" y="145" class="axis-label">:40</text>
+              
+              <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#00e5ff;stop-opacity:0.4" />
+                  <stop offset="100%" style="stop-color:#00e5ff;stop-opacity:0.0" />
+                </linearGradient>
+              </defs>
+              <polygon points="30,125 30,70 50,68 70,72 90,69 110,71 130,20 140,73 170,68 200,72 230,69 260,71 290,70 300,72 300,125" fill="url(#grad1)" />
+              <polyline points="30,70 50,68 70,72 90,69 110,71 130,20 140,73 170,68 200,72 230,69 260,71 290,70 300,72" fill="none" stroke="var(--cyan)" stroke-width="1.5" />
+            </svg>
+          </div>
+        </div>
+        
+        <!-- Card 2 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">FUEL REGULATOR 1</span>
+            <span class="chart-id">ID:1</span>
+          </div>
+          <div class="chart-body">
+            <svg class="chart-svg" viewBox="0 0 300 150" preserveAspectRatio="none">
+              <!-- Y Axis -->
+              <text x="5" y="20" class="axis-label">2000</text>
+              <line x1="30" y1="15" x2="300" y2="15" class="grid-line" />
+              <text x="5" y="75" class="axis-label">1000</text>
+              <line x1="30" y1="70" x2="300" y2="70" class="grid-line" />
+              <text x="5" y="130" class="axis-label">0</text>
+              <line x1="30" y1="125" x2="300" y2="125" class="grid-line" />
+              
+              <!-- X Axis labels -->
+              <text x="50" y="145" class="axis-label">:20</text>
+              <text x="100" y="145" class="axis-label">:25</text>
+              <text x="150" y="145" class="axis-label">:30</text>
+              <text x="200" y="145" class="axis-label">:35</text>
+              <text x="250" y="145" class="axis-label">:40</text>
+              
+              <polygon points="30,125 30,50 60,48 90,52 120,49 150,51 180,48 200,20 220,49 250,51 280,48 300,50 300,125" fill="url(#grad1)" />
+              <polyline points="30,50 60,48 90,52 120,49 150,51 180,48 200,20 220,49 250,51 280,48 300,50" fill="none" stroke="var(--cyan)" stroke-width="1.5" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">LANDING GEAR ACTUATOR</span>
+            <span class="chart-id">ID:2</span>
+          </div>
+          <div class="chart-body">
+            <svg class="chart-svg" viewBox="0 0 300 150" preserveAspectRatio="none">
+              <!-- Y Axis -->
+              <text x="5" y="20" class="axis-label">4000</text>
+              <line x1="30" y1="15" x2="300" y2="15" class="grid-line" />
+              <text x="5" y="75" class="axis-label">2000</text>
+              <line x1="30" y1="70" x2="300" y2="70" class="grid-line" />
+              <text x="5" y="130" class="axis-label">0</text>
+              <line x1="30" y1="125" x2="300" y2="125" class="grid-line" />
+              
+              <!-- X Axis labels -->
+              <text x="50" y="145" class="axis-label">:20</text>
+              <text x="100" y="145" class="axis-label">:25</text>
+              <text x="150" y="145" class="axis-label">:30</text>
+              <text x="200" y="145" class="axis-label">:35</text>
+              <text x="250" y="145" class="axis-label">:40</text>
+              
+              <polygon points="30,125 30,65 50,67 80,63 110,66 140,64 160,25 180,65 210,63 240,66 270,64 300,65 300,125" fill="url(#grad1)" />
+              <polyline points="30,65 50,67 80,63 110,66 140,64 160,25 180,65 210,63 240,66 270,64 300,65" fill="none" stroke="var(--cyan)" stroke-width="1.5" />
+            </svg>
+          </div>
+        </div>
+        
+        <!-- Card 4 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">HYDRAULIC PUMP B</span>
+            <span class="chart-id">ID:3</span>
+          </div>
+          <div class="chart-body">
+            <svg class="chart-svg" viewBox="0 0 300 150" preserveAspectRatio="none">
+              <!-- Y Axis -->
+              <text x="5" y="20" class="axis-label">4000</text>
+              <line x1="30" y1="15" x2="300" y2="15" class="grid-line" />
+              <text x="5" y="75" class="axis-label">2000</text>
+              <line x1="30" y1="70" x2="300" y2="70" class="grid-line" />
+              <text x="5" y="130" class="axis-label">0</text>
+              <line x1="30" y1="125" x2="300" y2="125" class="grid-line" />
+              
+              <!-- X Axis labels -->
+              <text x="50" y="145" class="axis-label">:20</text>
+              <text x="100" y="145" class="axis-label">:25</text>
+              <text x="150" y="145" class="axis-label">:30</text>
+              <text x="200" y="145" class="axis-label">:35</text>
+              <text x="250" y="145" class="axis-label">:40</text>
+              
+              <polygon points="30,125 30,70 60,68 90,72 100,20 120,70 150,69 180,71 210,68 240,72 270,69 300,70 300,125" fill="url(#grad1)" />
+              <polyline points="30,70 60,68 90,72 100,20 120,70 150,69 180,71 210,68 240,72 270,69 300,70" fill="none" stroke="var(--cyan)" stroke-width="1.5" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">FUEL REGULATOR 2</span>
+            <span class="chart-id">ID:4</span>
+          </div>
+          <div class="chart-body">
+            <svg class="chart-svg" viewBox="0 0 300 150" preserveAspectRatio="none">
+              <!-- Y Axis -->
+              <text x="5" y="20" class="axis-label">2000</text>
+              <line x1="30" y1="15" x2="300" y2="15" class="grid-line" />
+              <text x="5" y="75" class="axis-label">1000</text>
+              <line x1="30" y1="70" x2="300" y2="70" class="grid-line" />
+              <text x="5" y="130" class="axis-label">0</text>
+              <line x1="30" y1="125" x2="300" y2="125" class="grid-line" />
+              
+              <!-- X Axis labels -->
+              <text x="50" y="145" class="axis-label">:20</text>
+              <text x="100" y="145" class="axis-label">:25</text>
+              <text x="150" y="145" class="axis-label">:30</text>
+              <text x="200" y="145" class="axis-label">:35</text>
+              <text x="250" y="145" class="axis-label">:40</text>
+              
+              <polygon points="30,125 30,50 50,48 70,51 90,49 110,52 140,48 170,51 200,49 230,52 260,20 280,50 300,51 300,125" fill="url(#grad1)" />
+              <polyline points="30,50 50,48 70,51 90,49 110,52 140,48 170,51 200,49 230,52 260,20 280,50 300,51" fill="none" stroke="var(--cyan)" stroke-width="1.5" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">AILERON ACTUATOR L</span>
+            <span class="chart-id">ID:5</span>
+          </div>
+          <div class="chart-body">
+            <svg class="chart-svg" viewBox="0 0 300 150" preserveAspectRatio="none">
+              <!-- Y Axis -->
+              <text x="5" y="20" class="axis-label">4000</text>
+              <line x1="30" y1="15" x2="300" y2="15" class="grid-line" />
+              <text x="5" y="75" class="axis-label">2000</text>
+              <line x1="30" y1="70" x2="300" y2="70" class="grid-line" />
+              <text x="5" y="130" class="axis-label">0</text>
+              <line x1="30" y1="125" x2="300" y2="125" class="grid-line" />
+              
+              <!-- X Axis labels -->
+              <text x="50" y="145" class="axis-label">:20</text>
+              <text x="100" y="145" class="axis-label">:25</text>
+              <text x="150" y="145" class="axis-label">:30</text>
+              <text x="200" y="145" class="axis-label">:35</text>
+              <text x="250" y="145" class="axis-label">:40</text>
+              
+              <polygon points="30,125 30,76 60,78 90,75 120,77 150,74 180,76 210,75 230,22 250,77 280,75 300,76 300,125" fill="url(#grad1)" />
+              <polyline points="30,76 60,78 90,75 120,77 150,74 180,76 210,75 230,22 250,77 280,75 300,76" fill="none" stroke="var(--cyan)" stroke-width="1.5" />
+            </svg>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    
+    <div class="sidebar">
+      <div class="sidebar-header">
+        ⚠ ANOMALY FEED
+      </div>
+      <div class="anomaly-feed">
+        <!-- Anomaly 1 -->
+        <div class="anomaly-card critical">
+          <div class="anomaly-card-top">
+            <span>14:23:41</span>
+            <span class="badge critical">CRITICAL</span>
+          </div>
+          <div class="anomaly-card-main">
+            <span class="anomaly-name">HYDRAULIC PUMP A</span>
+            <span>3,847 psi | Z=3.8</span>
+          </div>
+        </div>
+        <!-- Anomaly 2 -->
+        <div class="anomaly-card warning">
+          <div class="anomaly-card-top">
+            <span>14:23:39</span>
+            <span class="badge warning">WARNING</span>
+          </div>
+          <div class="anomaly-card-main">
+            <span class="anomaly-name">FUEL REGULATOR 1</span>
+            <span>1,923 psi | Z=2.4</span>
+          </div>
+        </div>
+        <!-- Anomaly 3 -->
+        <div class="anomaly-card critical">
+          <div class="anomaly-card-top">
+            <span>14:23:35</span>
+            <span class="badge critical">CRITICAL</span>
+          </div>
+          <div class="anomaly-card-main">
+            <span class="anomaly-name">LANDING GEAR ACTUATOR</span>
+            <span>3,612 psi | Z=3.1</span>
+          </div>
+        </div>
+        <!-- Anomaly 4 -->
+        <div class="anomaly-card warning">
+          <div class="anomaly-card-top">
+            <span>14:23:31</span>
+            <span class="badge warning">WARNING</span>
+          </div>
+          <div class="anomaly-card-main">
+            <span class="anomaly-name">HYDRAULIC PUMP B</span>
+            <span>2,187 psi | Z=2.1</span>
+          </div>
+        </div>
+        <!-- Anomaly 5 -->
+        <div class="anomaly-card warning">
+          <div class="anomaly-card-top">
+            <span>14:23:28</span>
+            <span class="badge warning">WARNING</span>
+          </div>
+          <div class="anomaly-card-main">
+            <span class="anomaly-name">AILERON ACTUATOR L</span>
+            <span>3,501 psi | Z=2.9</span>
+          </div>
+        </div>
+        <!-- Anomaly 6 -->
+        <div class="anomaly-card warning">
+          <div class="anomaly-card-top">
+            <span>14:23:22</span>
+            <span class="badge warning">WARNING</span>
+          </div>
+          <div class="anomaly-card-main">
+            <span class="anomaly-name">FUEL REGULATOR 2</span>
+            <span>1,654 psi | Z=2.2</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

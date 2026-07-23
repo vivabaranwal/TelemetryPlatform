@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HAL Aerospace Telemetry - History</title>
+<style>
+  :root {
+    --bg-dark: #0a0f1e;
+    --bg-card: #131a30;
+    --border: #2a3b5c;
+    --cyan: #00e5ff;
+    --green: #00e676;
+    --amber: #ff9100;
+    --red: #ff1744;
+    --text-main: #e0e6ed;
+    --text-muted: #8b9bb4;
+    --font-mono: 'Consolas', 'Courier New', monospace;
+    --font-sans: 'Inter', 'Segoe UI', sans-serif;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 24px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0f1629 0%, #0a0f1e 100%);
+  }
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-area svg {
+    width: 24px;
+    height: 24px;
+    fill: var(--cyan);
+  }
+  .logo-title {
+    font-family: var(--font-mono);
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-main);
+  }
+  .hud {
+    display: flex;
+    gap: 24px;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+  }
+  .hud-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hud-value.cyan { color: var(--cyan); }
+  .hud-value.green { color: var(--green); }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+  .container {
+    padding: 32px 48px;
+    flex: 1;
+    overflow-y: auto;
+  }
+  h1 {
+    font-family: var(--font-mono);
+    font-weight: normal;
+    font-size: 1.5rem;
+    margin-top: 0;
+    margin-bottom: 24px;
+    color: var(--cyan);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+  }
+  .session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .session-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+  }
+  .session-card.selected {
+    border-color: var(--cyan);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+  }
+  .session-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .session-title {
+    font-size: 1.1rem;
+    color: #fff;
+    font-weight: bold;
+  }
+  .session-meta {
+    color: var(--text-muted);
+    display: flex;
+    gap: 24px;
+  }
+  .session-stats {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+  }
+  .stat-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .stat-val {
+    color: var(--text-main);
+  }
+  .badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .badge.completed { background-color: rgba(0, 230, 118, 0.1); color: var(--green); border: 1px solid var(--green); }
+  .badge.running { 
+    background-color: rgba(0, 229, 255, 0.1); 
+    color: var(--cyan); 
+    border: 1px solid var(--cyan);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(0, 229, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+  }
+  .running-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--cyan);
+  }
+  .detail-panel {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+  }
+  .detail-header {
+    font-family: var(--font-mono);
+    font-size: 1.2rem;
+    color: #fff;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--text-muted);
+    font-weight: normal;
+  }
+  td {
+    color: var(--text-main);
+  }
+  .col-right {
+    text-align: right;
+  }
+  .anomaly-val {
+    color: var(--amber);
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo-area">
+      <svg viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66C7.67 12.24 9.02 9.88 11.89 6h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C13.03 18.15 11 21 11 21z"/></svg>
+      <div class="logo-title">HAL AEROSPACE TELEMETRY</div>
+    </div>
+    <div class="hud">
+      <div class="hud-item">PACKETS RX <span class="hud-value cyan">1,247,893</span></div>
+      <div class="hud-item">STATUS <div class="status-dot"></div><span class="hud-value green">LIVE</span></div>
+    </div>
+  </header>
+  <div class="container">
+    <h1>TEST SESSION HISTORY</h1>
+    
+    <div class="session-list">
+      <div class="session-card selected">
+        <div class="session-info">
+          <div class="session-title">Session #1 | Hydraulic Endurance Run A</div>
+          <div class="session-meta">
+            <span>14:05:12 - 14:23:47</span>
+            <span>Duration: 18m 35s</span>
+          </div>
+        </div>
+        <div class="session-stats">
+          <div class="stat-group">
+            <span class="stat-label">Readings</span>
+            <span class="stat-val">1,114,000</span>
+          </div>
+          <div class="stat-group">
+            <span class="stat-label">Anomalies</span>
+            <span class="stat-val">23</span>
+          </div>
+          <div class="badge completed">COMPLETED</div>
+        </div>
+      </div>
+
+      <div class="session-card">
+        <div class="session-info">
+          <div class="session-title">Session #2 | Fuel Regulator Stress Test</div>
+          <div class="session-meta">
+            <span>13:41:03 - 14:02:19</span>
+            <span>Duration: 21m 16s</span>
+          </div>
+        </div>
+        <div class="session-stats">
+          <div class="stat-group">
+            <span class="stat-label">Readings</span>
+            <span class="stat-val">1,275,600</span>
+          </div>
+          <div class="stat-group">
+            <span class="stat-label">Anomalies</span>
+            <span class="stat-val">7</span>
+          </div>
+          <div class="badge completed">COMPLETED</div>
+        </div>
+      </div>
+
+      <div class="session-card">
+        <div class="session-info">
+          <div class="session-title">Session #3 | Landing Gear Cycle Test</div>
+          <div class="session-meta">
+            <span>13:15:44 - 13:38:02</span>
+            <span>Duration: 22m 18s</span>
+          </div>
+        </div>
+        <div class="session-stats">
+          <div class="stat-group">
+            <span class="stat-label">Readings</span>
+            <span class="stat-val">1,338,000</span>
+          </div>
+          <div class="stat-group">
+            <span class="stat-label">Anomalies</span>
+            <span class="stat-val">31</span>
+          </div>
+          <div class="badge completed">COMPLETED</div>
+        </div>
+      </div>
+
+      <div class="session-card">
+        <div class="session-info">
+          <div class="session-title">Session #4 | Full System Checkout</div>
+          <div class="session-meta">
+            <span>Currently running</span>
+            <span>Duration: 04m 12s (live)</span>
+          </div>
+        </div>
+        <div class="session-stats">
+          <div class="stat-group">
+            <span class="stat-label">Readings</span>
+            <span class="stat-val">252,000</span>
+          </div>
+          <div class="stat-group">
+            <span class="stat-label">Anomalies</span>
+            <span class="stat-val">5</span>
+          </div>
+          <div class="badge running"><div class="running-dot"></div> RUNNING</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-panel">
+      <div class="detail-header">
+        <span>Session Detail: Session #1</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Sensor</th>
+            <th class="col-right">Min</th>
+            <th class="col-right">Max</th>
+            <th class="col-right">Avg</th>
+            <th class="col-right">Anomaly Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Hydraulic Pump A</td>
+            <td class="col-right">1,847 psi</td>
+            <td class="col-right">3,891 psi</td>
+            <td class="col-right">2,043 psi</td>
+            <td class="col-right anomaly-val">8</td>
+          </tr>
+          <tr>
+            <td>Fuel Regulator 1</td>
+            <td class="col-right">1,203 psi</td>
+            <td class="col-right">1,967 psi</td>
+            <td class="col-right">1,412 psi</td>
+            <td class="col-right anomaly-val">3</td>
+          </tr>
+          <tr>
+            <td>Landing Gear Actuator</td>
+            <td class="col-right">1,923 psi</td>
+            <td class="col-right">3,654 psi</td>
+            <td class="col-right">2,187 psi</td>
+            <td class="col-right anomaly-val">7</td>
+          </tr>
+          <tr>
+            <td>Hydraulic Pump B</td>
+            <td class="col-right">1,756 psi</td>
+            <td class="col-right">3,743 psi</td>
+            <td class="col-right">1,998 psi</td>
+            <td class="col-right anomaly-val">3</td>
+          </tr>
+          <tr>
+            <td>Fuel Regulator 2</td>
+            <td class="col-right">1,187 psi</td>
+            <td class="col-right">1,834 psi</td>
+            <td class="col-right">1,389 psi</td>
+            <td class="col-right anomaly-val">1</td>
+          </tr>
+          <tr>
+            <td>Aileron Actuator L</td>
+            <td class="col-right">1,645 psi</td>
+            <td class="col-right">3,512 psi</td>
+            <td class="col-right">1,876 psi</td>
+            <td class="col-right anomaly-val">1</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
